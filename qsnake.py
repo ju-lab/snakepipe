@@ -6,12 +6,12 @@ import sys
 import re
 from snakemake.utils import read_job_properties
 
-LOGDIR = sys.argv[-2]
-jobscript = sys.argv[-1]
+LOGDIR = 'logs'
+jobscript = sys.argv[1]
 props = read_job_properties(jobscript)
 
 # # set up job name, project name
-# jobname = "{rule}_job{jobid}".format(rule=props["rule"], jobid=props["jobid"])
+jobname = "{rule}_job{jobid}".format(rule=props["rule"], jobid=props["jobid"])
 
 # cmdline = f'qsub -N {jobname} '
 
@@ -19,13 +19,13 @@ props = read_job_properties(jobscript)
 # if "-N" not in props["params"].get("LSF", ""):
 
 cmdline = 'qsub '
-cmdline += f"-o {LOGDIR}/qsub_{jobname}.log "
+cmdline += f"-o {LOGDIR}/qsub_{jobname}.out -e {LOGDIR}/qsub_{jobname}.err "
 
 # pass memory and cpu resource request to LSF
 ncpus = props['threads']
-mem = props.get('resources', {}).get('mem')
+mem = props.get('resources', {}).get('mem_mb')
 if mem:
-    cmdline += f'-l nodes=1:ppn={ncpus}, h_vmem={mem}M '
+    cmdline += f'-l nodes=1:ppn={ncpus} -l mem={mem}M '
     
 else:
     cmdline += f'-l nodes=1:ppn={ncpus} '
