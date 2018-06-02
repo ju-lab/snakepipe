@@ -60,7 +60,9 @@ rule markdup:
         mdbam = temp("temp_dna/{sample}_{tn}.temp.sorted.md.bam"),
         mdbai = temp("temp_dna/{sample}_{tn}.temp.sorted.md.bam.bai")
 
-    threads: 4
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * 4000
     log:
         "logs/{sample}_{tn}.md.log"
     shell:
@@ -81,14 +83,14 @@ rule realign:
     output:
         realignedbam = temp("temp_dna/{sample}_{tn}.temp.sorted.md.ir.bam"),
         realignedbai = temp("temp_dna/{sample}_{tn}.temp.sorted.md.ir.bam.bai")
-    threads: 4
+    threads: 1
     resources:
-        mem_mb=lambda wildcards, attempt: attempt * 1000
+        mem_mb=lambda wildcards, attempt: attempt * 4000
     shell:
         "{input.java} -Xmx4g -jar {input.gatk} -T RealignerTargetCreator -R {input.ref} "
         " -I {input.bam} --known {input.knownindel} -o {output.realignedbam}.interval; "
         "{input.java} -Xmx4g -jar {input.gatk} -T IndelRealigner -R {input.ref} -I {input.bam} "
-        "-targetIntervals {output}.interval -o {output.realignedbam}; "
+        "-targetIntervals {output.realignedbam}.interval -o {output.realignedbam}; "
         "{input.samtools} index {output.realignedbam}"
 
 
@@ -104,6 +106,7 @@ rule baserecal:
     input:
         java = config['java'], 
         gatk = config['gatk'], 
+        samtools = config['samtools'],
         ref = config['reference'], 
         dbsnp = config['dbsnp'], 
         knownindel = config['knownindel'], 
@@ -111,8 +114,20 @@ rule baserecal:
     output:
         recalTable = temp('temp_dna/{sample}_{tn}.recaltable'),
         recalbam = "dna_bam/{sample}_{tn}.bam"
-    threads: 4
+    threads: 1
+    resources:
+        mem_mb=lambda wildcards, attempt: attempt * 4000
     shell:
         "{input.java} -Xmx4g -jar {input.gatk} -T BaseRecalibrator -R {input.ref} -I {input.bam} -knownSites {input.dbsnp} --knownSites {input.knownindel} -o {output.recalTable}; "
-        "{input.java} -Xmx4g -jar {input.gatk} -T PrintReads -R {input.ref} -I {input.bam} -BQSR {output.recalTable} -o {recalibratedBam} -nct {threads}"
-    
+        "{input.java} -Xmx4g -jar {input.gatk} -T PrintReads -R {input.ref} -I {input.bam} -BQSR {output.recalTable} -o {recalibratedBam} -nct {threads}; "
+        "{input.samtools} index {output.recalbam}"
+
+'''
+rule mpileup:
+    input:
+        bam = 'dna_bam/{sample}_{tn}.bam', 
+        samtools = config['samtools'], 
+        ref = config['reference']
+    output:
+        mpileup = "mpileup/{sample}_{tn}.mpileup.gz"
+'''

@@ -19,7 +19,7 @@ jobname = "{rule}_job{jobid}".format(rule=props["rule"], jobid=props["jobid"])
 # if "-N" not in props["params"].get("LSF", ""):
 
 cmdline = 'qsub '
-cmdline += f"-o {LOGDIR}/qsub_{jobname}.out -e {LOGDIR}/qsub_{jobname}.err "
+cmdline += f"-o {LOGDIR}/{jobname}.out -e {LOGDIR}/{jobname}.err "
 
 # pass memory and cpu resource request to LSF
 ncpus = props['threads']
