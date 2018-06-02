@@ -1,0 +1,9 @@
+samples:
+    test:
+        tumor_fastq: dna_fastq/testT_r
+        normal_fastq: dna_fastq/testN_r
+        sex: XX
+    sample1:
+        tumor_fastq: dna_fastq/sampleT_r
+        normal_fastq: dna_fastq/sampleN_r
+        sex: XY
