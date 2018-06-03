@@ -152,11 +152,12 @@ rule manta:
         workflow = 'data_processing/manta/{sample}/runWorkflow.py'
     threads: 4
     output: 
-        candidateSmallIndel = 'data_processing/manta/{sample}/results/variants/candidateSmallIndels.vcf.gz'
+        candidateSmallIndel = 'data_processing/manta/{sample}/results/variants/candidateSmallIndels.vcf.gz', 
+        somaticSV_vcf = 'data_processing/manta/{sample}/results/variants/somaticSV.vcf.gz'
     shell:
         "{input.python2} {input.manta} --normalBam {input.normal_bam} --tumorBam {input.tumor_bam} "
         "--referenceFasta {input.ref} --runDir {params.rundir}; "
-        "{input.python2} {params.workflow} -m local -j 4 --quiet"
+        "{input.python2} {params.workflow} -m local -j {threads} --quiet"
 
 
 rule mutect:
@@ -179,15 +180,29 @@ rule mutect:
         "--input_file:normal {input.normal_bam} --input_file:tumor {input.tumor_bam} "
         " --vcf {output.vcf} --out {output.out}"
 
-'''
-
-
 rule strelka:
     input:
-        python2 = 
-    output:
-    threads: 1
+        python2 = config['python2'], 
+        strelka = config['strelka'],
+        ref  = config['reference'], 
+        manta_indel_candidate = "data_processing/manta/{sample}/results/variants/candidateSmallIndels.vcf.gz", 
+        normal_bam = "dna_bam/{sample}_N.bam", 
+        tumor_bam = "dna_bam/{sample}_T.bam", 
+    params:
+        rundir = 'data_processing/strelka/{sample}', 
+        workflow = 'data_processing/strelka/{sample}/runWorkflow.py'
+    output: 
+        snvvcf = 'data_processing/strelka/{sample}/results/variants/somatic.snvs.vcf.gz', 
+        indelvcf = 'data_processing/strelka/{sample}/results/variants/somatic.indels.vcf.gz'
+    threads: 4
     shell:
+        "{input.python2} {input.strelka} --normalBam {input.normal_bam} --tumorBam {input.tumor_bam} "
+        "--referenceFasta {input.ref} --indelCandidates {input.manta_indel_candidate} --runDir {params.rundir}; "
+        "{input.python2} {params.workflow} -m local -j {threads} --quiet"
+
+
+'''
+
 
 rule delly:
     input:
@@ -207,7 +222,10 @@ rule sequenza:
 '''
 rule combine:
         input:
-            outfiles=expand("data_processing/mutect/{sample}.mutect.vcf", sample=config["samples"], tn=['T', 'N'])
+            outfiles=expand("data_processing/strelka/{sample}/results/variants/somatic.snvs.vcf.gz", sample=config["samples"], tn=['T', 'N']) + \
+            expand("data_processing/mutect/{sample}.mutect.vcf", sample=config["samples"]) + \
+            expand("data_processing/manta/{sample}/results/variants/somaticSV.vcf.gz", sample=config['samples']) + \
+            expand('data_processing/varscan/{sample}.varscan.snp.vcf', sample=config['samples'])
         output:
             "done"
         shell:

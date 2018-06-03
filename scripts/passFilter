@@ -1,0 +1,9 @@
+#!/bin/bash
+# read in raw vcf.gz file and output a filtered vcf that uses FILTER column of vcf file that is either '.' or PASS
+
+vcf=$1
+stem=$(echo $vcf | sed 's/.vcf.gz//g')
+bcftools view -f .,PASS $vcf > $stem'.passonly.vcf'
+bgzip $stem'.passonly.vcf'
+tabix -p vcf $stem'.passonly.vcf.gz'
+echo filtered vcf: $stem'.passonly.vcf.gz'
