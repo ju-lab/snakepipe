@@ -26,8 +26,13 @@ dellymask: /home/users/cjyoon/tools/delly/excludeTemplates/human.hg19.excl.tsv
 manta: /home/users/cjyoon/anaconda3/envs/py27/share/manta-1.2.1-0/bin/configManta.py
 
 # cnv variant callers
-sequenza: /home/users/cjyoon/scripts/run_sequenza/sequenza_fromMpileup.sh
+sequenza_utils: /home/users/cjyoon/anaconda3/bin/sequenza-utils
+Rscript: /home/users/cjyoon/anaconda3/bin/Rscript
+run_sequenza: scripts/run_sequenza.R
+gc50base_ref: /home/users/data/01_reference/human_g1k_v37/human_g1k_v37_noM.gc50Base.txt.gz
+
 # variant filters
+passFilter: scripts/passFilter
 
 # variant annotator
 vep: /home/users/cjyoon/ensembl-vep/vep

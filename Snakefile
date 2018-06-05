@@ -8,6 +8,7 @@ rule all:
     input:
         'done'
 
+"""
 rule bwa_tumor:
     input:
         bwa = config['bwa'],
@@ -17,10 +18,10 @@ rule bwa_tumor:
         fq2 = lambda wildcards: config['samples'][wildcards.sample]['tumor_fastq'] + '2.fq'
 
     output:
-        bam=temp("temp_dna/{sample}_T.temp.bam"),
-        sortedbam=temp('temp_dna/{sample}_T.temp.sorted.bam')
+        bam = temp("temp_dna/{sample}_T.temp.bam"),
+        sortedbam = temp('temp_dna/{sample}_T.temp.sorted.bam')
     params:
-        rg="@RG\tID:{sample}_T\tSM:{sample}_T\tPL:Illumina"
+        rg = "@RG\tID:{sample}_T\tSM:{sample}_T\tPL:Illumina"
     log:
         "logs/{sample}_T.bwa.log"
     threads: 4
@@ -38,10 +39,10 @@ rule bwa_normal:
         fq2 = lambda wildcards: config['samples'][wildcards.sample]['normal_fastq'] + '2.fq'
 
     output:
-        bam=temp("temp_dna/{sample}_N.temp.bam"),
-        sortedbam=temp('temp_dna/{sample}_N.temp.sorted.bam')
+        bam = temp("temp_dna/{sample}_N.temp.bam"),
+        sortedbam = temp('temp_dna/{sample}_N.temp.sorted.bam')
     params:
-        rg="@RG\tID:{sample}_N\tSM:{sample}_N\tPL:Illumina"
+        rg = "@RG\tID:{sample}_N\tSM:{sample}_N\tPL:Illumina"
     log:
         "logs/{sample}_N.bwa.log"
     threads: 4
@@ -113,7 +114,7 @@ rule baserecal:
         "{input.java} -Xmx4g -jar {input.gatk} -T BaseRecalibrator -R {input.ref} -I {input.bam} -knownSites {input.dbsnp} --knownSites {input.knownindel} -o {output.recalTable}; "
         "{input.java} -Xmx4g -jar {input.gatk} -T PrintReads -R {input.ref} -I {input.bam} -BQSR {output.recalTable} -o {output.recalbam} -nct {threads}; "
         "{input.samtools} index {output.recalbam}"
-
+"""
 rule mpileup:
     input:
         bam = 'dna_bam/{sample}_{tn}.bam', 
@@ -212,20 +213,40 @@ rule delly:
 
 
 
-
+'''
 rule sequenza:
     input:
+        sequenza_utils = config['sequenza_utils'], 
+        Rscript = config['Rscript'], 
+        run_sequenza = config['run_sequenza'], 
+        tumor_mpileup = 'mpileup/{sample}_T.mpileup', 
+        normal_mpileup = 'mpileup/{sample}_N.mpileup',
+        gc50base_ref = config['gc50base_ref']
     output:
-    threads:
+        seqz = temp('data_processing/sequenza/{sample}/{sample}.seqz'), 
+        comp_seqz = temp('data_processing/sequenza/{sample}/{sample}.comp.seqz'), 
+        rmGLMT = temp('data_processing/sequenza/{sample}/{sample}.comp.seqz.rmGLMT'), 
+        sequenza_input = 'data_processing/sequenza/{sample}/{sample}.comp.seqz.rmGLMT.gz', 
+        sequenza_output = 'data_processing/sequenza/{sample}/{sample}_genome_view.pdf'
+    params:
+        outputdir = 'data_processing/sequenza/{sample}',
+        sampleName = '{sample}'
+    threads: 1
     shell:
+        "{input.sequenza_utils} bam2seqz -gc {input.gc50base_ref} -n {input.normal_mpileup} -t {input.tumor_mpileup} "
+        "--pileup -o {output.seqz}; "
+        "{input.sequenza_utils} seqz_binning --window 100 --seqz {output.seqz} -o {output.comp_seqz}; "
+        "cat {output.comp_seqz} | grep -v MT | grep -v GL > {output.rmGLMT}; "
+        "gzip {output.rmGLMT}; "
+        "{input.Rscript} {input.run_sequenza} --seqz_file {output.sequenza_input} -o {params.outputdir} -s {params.sampleName}"
 
-'''
 rule combine:
         input:
             outfiles=expand("data_processing/strelka/{sample}/results/variants/somatic.snvs.vcf.gz", sample=config["samples"], tn=['T', 'N']) + \
             expand("data_processing/mutect/{sample}.mutect.vcf", sample=config["samples"]) + \
             expand("data_processing/manta/{sample}/results/variants/somaticSV.vcf.gz", sample=config['samples']) + \
-            expand('data_processing/varscan/{sample}.varscan.snp.vcf', sample=config['samples'])
+            expand('data_processing/varscan/{sample}.varscan.snp.vcf', sample=config['samples']) + \
+            expand('data_processing/sequenza/{sample}/{sample}_genome_view.pdf', sample=config['samples'])
         output:
             "done"
         shell:

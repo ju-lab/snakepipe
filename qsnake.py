@@ -7,7 +7,7 @@ import re
 from snakemake.utils import read_job_properties
 
 LOGDIR = 'logs'
-jobscript = sys.argv[1]
+jobscript = sys.argv[-1]
 props = read_job_properties(jobscript)
 
 # # set up job name, project name
@@ -18,7 +18,7 @@ jobname = "{rule}_job{jobid}".format(rule=props["rule"], jobid=props["jobid"])
 # # log file output
 # if "-N" not in props["params"].get("LSF", ""):
 
-cmdline = 'qsub '
+cmdline = 'echo qsub ****dependencies;;;;;;' + '|'.join(sys.argv[2:-1]) + '*****'
 cmdline += f"-o {LOGDIR}/{jobname}.out -e {LOGDIR}/{jobname}.err "
 
 # pass memory and cpu resource request to LSF
@@ -30,13 +30,13 @@ if mem:
 else:
     cmdline += f'-l nodes=1:ppn={ncpus} '
 
-# # figure out job dependencies
-# dependencies = set(sys.argv[1:-2])
-# if dependencies:
-#     cmdline += "-W depend=afterok'{}' ".format(" && ".join(dependencies))
+# figure out job dependencies
+dependencies = set(sys.argv[2:-1])
+if dependencies:
+    cmdline += ' -W depend=afterok:' + ":".join(dependencies)
 
 # the actual job
 cmdline += jobscript
-
+#cmdline += r" | tail -1 | sed 's/^[ \t]*//;s/[ \t]*$//' "
 # call the command
 os.system(cmdline)
