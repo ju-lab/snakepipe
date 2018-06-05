@@ -8,7 +8,7 @@ rule all:
     input:
         'done'
 
-"""
+
 rule bwa_tumor:
     input:
         bwa = config['bwa'],
@@ -114,7 +114,7 @@ rule baserecal:
         "{input.java} -Xmx4g -jar {input.gatk} -T BaseRecalibrator -R {input.ref} -I {input.bam} -knownSites {input.dbsnp} --knownSites {input.knownindel} -o {output.recalTable}; "
         "{input.java} -Xmx4g -jar {input.gatk} -T PrintReads -R {input.ref} -I {input.bam} -BQSR {output.recalTable} -o {output.recalbam} -nct {threads}; "
         "{input.samtools} index {output.recalbam}"
-"""
+
 rule mpileup:
     input:
         bam = 'dna_bam/{sample}_{tn}.bam', 
